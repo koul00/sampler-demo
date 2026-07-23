@@ -1,0 +1,14 @@
+# --- Large data files (never commit to GitHub; download from Zenodo) ---
+*.p
+*.svs
+*.svs.p
+data/*
+!data/README.md
+
+# --- Python noise ---
+__pycache__/
+*.pyc
+.ipynb_checkpoints/
+
+# --- OS noise ---
+.DS_Store
