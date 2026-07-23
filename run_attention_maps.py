@@ -70,7 +70,7 @@ def make_map(data_dir, slide, Dtab, Wmat, cls, use_abs):
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--data-dir", default=os.path.expanduser("~/Downloads/SAMPLERtest"))
+    ap.add_argument("--data-dir", default=os.path.join(os.path.dirname(__file__), "data"))
     ap.add_argument("--out-dir", default=os.path.join(os.path.dirname(__file__), "examples"))
     args = ap.parse_args()
     os.makedirs(args.out_dir, exist_ok=True)
