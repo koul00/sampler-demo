@@ -1,9 +1,16 @@
 # SAMPLER demo — tumor attention maps on whole-slide images
 
+
 A small, runnable walkthrough of **SAMPLER** (Foroughi Pour et al., *eBioMedicine*
 2023), a method that turns a gigapixel pathology slide into a compact fixed-size
 vector, trains a light classifier on those vectors, and paints **attention maps**
 showing which regions of a slide look tumor-like.
+
+**Where this sits in the timeline:** the SAMPLER vector is built from *learned*
+deep features (InceptionV3) instead of the hand-crafted texture/shape features of the
+classical era — but it is still fed to **classical classifiers** (Logistic Regression,
+SVM, Random Forest). It's the bridge between hand-crafted-feature pathology and
+today's foundation models.
 
 This repo bundles the SAMPLER helper library, a clean driver script, the original
 example notebook, and two example output maps. The large data files are downloaded
@@ -15,10 +22,25 @@ separately (see [`data/README.md`](data/README.md)).
 
 ```bash
 pip install -r requirements.txt
-# download the data bundle, then:
+# download the data bundle into data/, then either:
+jupyter notebook demo.ipynb          # run top-to-bottom: attention maps + classifier
+# ...or just the attention-map driver:
 python run_attention_maps.py --data-dir /path/to/SAMPLERtest
 # -> writes examples/im1.png and examples/im2.png
 ```
+
+## Classical classifier on the SAMPLER representation
+
+`demo.ipynb` Section 7 trains off-the-shelf **classical classifiers** on the 61,440-long
+SAMPLER vectors and predicts **tumor vs. normal** on held-out TCGA-BRCA slides
+(693 train / 298 test, ~20% tumor). Same classifiers the classical era relied on —
+now standing on deep features:
+
+| Classifier | Test AUC | Test Accuracy |
+|-----------|:--------:|:-------------:|
+| Logistic Regression | **0.917** | 0.889 |
+| SVM (RBF) | 0.910 | 0.893 |
+| Random Forest | 0.868 | 0.836 |
 
 ## What SAMPLER actually does
 
