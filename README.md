@@ -42,6 +42,35 @@ now standing on deep features:
 | SVM (RBF) | 0.910 | 0.893 |
 | Random Forest | 0.868 | 0.836 |
 
+## Cross-check: the decile trick on CAMELYON16 (LazySlide/PLIP features)
+
+`camelyon16/` applies SAMPLER's core trick — `np.ravel(np.percentile(X, deciles,
+axis=0))` — to a *different* feature backbone and a *different* dataset than the
+TCGA-BRCA/InceptionV3 demo above: PLIP tile features (512-dim) from a
+[LazySlide pipeline](https://github.com/koul00/lazyslide-wsi-pipeline) on a 10%
+stratified sample of the CAMELYON16 training set (16 normal, 11 tumor, same
+ratio as the full set).
+
+```bash
+cd camelyon16 && python run_camelyon16_decile.py
+```
+
+| Classifier | Leave-one-out AUC |
+|-----------|:--------:|
+| Logistic Regression (C=0.01) | **0.778** |
+
+(N=27 is too small for a train/test split or hyperparameter tuning, hence
+leave-one-out and a fixed, untuned `C`.)
+
+Lower than this repo's own TCGA-BRCA result (0.917) and lower than the same
+CAMELYON16 cohort's [zero-shot PLIP AUC](https://github.com/koul00/lazyslide-wsi-pipeline#cohort-validation-27-slide-stratified-sample)
+(mean 0.878) — but the two CAMELYON16 methods disagree in an interesting way:
+`tumor_081` (zero-shot's worst slide, AUC 0.681) scores 0.899 here, while a
+few normal slides (`normal_004`, `normal_016`, `normal_084`) score high as
+false positives. The two approaches appear to make different kinds of
+mistakes on the same slides — a lead for the feature-analysis side of the
+work, not just an AUC horse race.
+
 ## What SAMPLER actually does
 
 A whole-slide image (WSI) is enormous (~100,000 × 100,000 pixels), so it is first
