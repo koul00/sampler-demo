@@ -21,7 +21,7 @@ from sklearn.preprocessing import StandardScaler
 from sklearn.model_selection import LeaveOneOut
 from sklearn.metrics import roc_auc_score
 
-d = np.load("sampler_cohort27.npz", allow_pickle=True)
+d = np.load("cohort27_plip.npz", allow_pickle=True)
 X, y, names = d["X"], d["y"], d["names"]
 print(f"X: {X.shape}  y counts (normal/tumor): {np.bincount(y)}")
 

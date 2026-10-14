@@ -29,47 +29,43 @@ python run_attention_maps.py --data-dir /path/to/SAMPLERtest
 # -> writes examples/im1.png and examples/im2.png
 ```
 
-## Classical classifier on the SAMPLER representation
+## Three runs of the same decile trick
 
-`demo.ipynb` Section 7 trains off-the-shelf **classical classifiers** on the 61,440-long
-SAMPLER vectors and predicts **tumor vs. normal** on held-out TCGA-BRCA slides
-(693 train / 298 test, ~20% tumor). Same classifiers the classical era relied on —
-now standing on deep features:
+SAMPLER's core trick — `np.ravel(np.percentile(X, deciles, axis=0))`, turning a
+slide's tile-feature matrix into one fixed-size vector — run three times, each
+varying one thing, so the differences are attributable:
 
-| Classifier | Test AUC | Test Accuracy |
-|-----------|:--------:|:-------------:|
-| Logistic Regression | **0.917** | 0.889 |
-| SVM (RBF) | 0.910 | 0.893 |
-| Random Forest | 0.868 | 0.836 |
+| Part | Dataset | Feature backbone | Tiles | Evaluation | AUC |
+|------|---------|:---:|:---:|---|:---:|
+| 1. `demo.ipynb` §7 | TCGA-BRCA (693 train / 298 test) | InceptionV3, 3-scale | precomputed | held-out test | **0.917** |
+| 2. `camelyon16/plip/` | CAMELYON16, 27-slide cohort | PLIP (via [LazySlide](https://github.com/koul00/lazyslide-wsi-pipeline)) | 1-scale | leave-one-out | **0.778** |
+| 3. `camelyon16/inceptionv3/` | CAMELYON16, same 27-slide cohort | InceptionV3, 3-scale | own extraction | leave-one-out | **0.710** |
 
-## Cross-check: the decile trick on CAMELYON16 (LazySlide/PLIP features)
-
-`camelyon16/` applies SAMPLER's core trick — `np.ravel(np.percentile(X, deciles,
-axis=0))` — to a *different* feature backbone and a *different* dataset than the
-TCGA-BRCA/InceptionV3 demo above: PLIP tile features (512-dim) from a
-[LazySlide pipeline](https://github.com/koul00/lazyslide-wsi-pipeline) on a 10%
-stratified sample of the CAMELYON16 training set (16 normal, 11 tumor, same
-ratio as the full set).
+Parts 2 and 3 use the *same* 10% stratified CAMELYON16 sample (16 normal, 11
+tumor, [same slides](https://github.com/koul00/lazyslide-wsi-pipeline#cohort-validation-27-slide-stratified-sample)
+as that repo's zero-shot cohort) and the *same* leave-one-out logistic
+regression (N=27 rules out a held-out split or hyperparameter search) — only
+the feature backbone differs, so 2 vs 3 isolates that one variable.
 
 ```bash
-cd camelyon16 && python run_camelyon16_decile.py
+cd camelyon16/plip && python run_decile.py          # part 2: needs lazyslide-wsi-pipeline/slides/ as a sibling checkout
+cd camelyon16/inceptionv3 && python extract_features.py && python run_decile.py   # part 3: same, ~18 min on Apple-MPS
 ```
 
-| Classifier | Leave-one-out AUC |
-|-----------|:--------:|
-| Logistic Regression (C=0.01) | **0.778** |
+**Reading it:** part 1 (0.917) isn't directly comparable to 2/3 — different
+dataset, different split. Within CAMELYON16, PLIP (2) beats a from-scratch
+InceptionV3 extraction (3) by 0.07 AUC — a pathology-trained vision-language
+backbone generalizes better here than a generic ImageNet one, even with the
+authors' exact multi-scale recipe. Both also trail this cohort's
+[zero-shot PLIP AUC](https://github.com/koul00/lazyslide-wsi-pipeline#cohort-validation-27-slide-stratified-sample)
+(mean 0.878) — the decile-vector + classical-classifier route loses
+information the zero-shot route keeps.
 
-(N=27 is too small for a train/test split or hyperparameter tuning, hence
-leave-one-out and a fixed, untuned `C`.)
-
-Lower than this repo's own TCGA-BRCA result (0.917) and lower than the same
-CAMELYON16 cohort's [zero-shot PLIP AUC](https://github.com/koul00/lazyslide-wsi-pipeline#cohort-validation-27-slide-stratified-sample)
-(mean 0.878) — but the two CAMELYON16 methods disagree in an interesting way:
-`tumor_081` (zero-shot's worst slide, AUC 0.681) scores 0.899 here, while a
-few normal slides (`normal_004`, `normal_016`, `normal_084`) score high as
-false positives. The two approaches appear to make different kinds of
-mistakes on the same slides — a lead for the feature-analysis side of the
-work, not just an AUC horse race.
+The three methods also disagree on *which* slides they get wrong — e.g.
+`tumor_081` (zero-shot's worst slide, AUC 0.681) scores 0.899 under PLIP-decile
+and 0.507 under InceptionV3-decile, while a few normal slides score high as
+false positives under each method, not the same ones throughout. That's a
+lead for the feature-analysis side of the work, not just an AUC horse race.
 
 ## What SAMPLER actually does
 
